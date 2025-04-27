@@ -1,0 +1,14 @@
+streamlit
+faster-whisper
+transformers
+torch
+keybert
+pydub
+sentence-transformers
+matplotlib
+wordcloud
+pydub==0.25.1
+streamlit==1.8.0
+transformers==4.0.0
+torch==1.10.0
+# Add any other dependencies
