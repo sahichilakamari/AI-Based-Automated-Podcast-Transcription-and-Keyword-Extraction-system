@@ -11,3 +11,5 @@ pydub
 streamlit
 transformers
 torch
+bertopic
+
