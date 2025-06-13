@@ -7,9 +7,12 @@ pydub
 sentence-transformers
 matplotlib
 wordcloud
-pydub
-streamlit
-transformers
-torch
 bertopic
 imageio-ffmpeg
+numpy
+scipy
+librosa
+plotly
+streamlit-option-menu
+streamlit-lottie
+requests
