@@ -38,36 +38,25 @@ class AnalysisEngine:
             return None
     
     def _load_summarizer(self):
-        """Load summarization model with error handling."""
+    """Load summarization model with error handling."""
         try:
             logger.info("Loading summarization model...")
-            
-            # Set alternative cache location
             os.environ['HF_HOME'] = os.path.normpath(os.path.join(os.getcwd(), "model_cache"))
+            os.environ["HF_DATASETS_CACHE"] = os.path.join(os.getcwd(), "model_cache", "datasets")
+            os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
             
-            # Try smaller model first
+            # Smaller summarization model (fast and lightweight)
             model = pipeline(
                 "summarization",
-                model="sshleifer/distilbart-cnn-12-6",
-                device=-1  # CPU
+                model="Falconsai/text_summarization",
+                device=-1
             )
             logger.info("Summarization model loaded successfully")
             return model
         except Exception as e:
             logger.error(f"Failed to load summarizer: {str(e)}", exc_info=True)
-            
-            # Fallback to even smaller model
-            try:
-                model = pipeline(
-                    "summarization",
-                    model="facebook/bart-large-cnn",
-                    device=-1
-                )
-                logger.info("Loaded fallback summarization model")
-                return model
-            except Exception as fallback_error:
-                logger.error(f"Fallback summarizer failed: {str(fallback_error)}")
-                return None
+            return None
+
     
     def _load_topic_model(self):
         """Load topic model with error handling."""
