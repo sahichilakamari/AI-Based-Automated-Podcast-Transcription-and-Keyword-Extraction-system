@@ -79,18 +79,13 @@ def display_keywords(keywords: List[Dict[str, Any]]):
     )
     st.plotly_chart(fig_pie, use_container_width=True)
     
-    # Detailed table
+    # Detailed table - Updated to use st.dataframe without column_config
     with st.expander("📋 Detailed Keywords Table"):
         st.dataframe(
-            df,
+            df[['keyword', 'score', 'confidence']],
             column_config={
                 "keyword": "Keyword",
-                "score": st.column_config.ProgressColumn(
-                    "Relevance Score",
-                    help="Higher scores indicate more relevant keywords",
-                    min_value=0,
-                    max_value=1,
-                ),
+                "score": "Relevance Score (0-1)",
                 "confidence": "Confidence Level"
             },
             hide_index=True
@@ -177,38 +172,35 @@ def display_export_options(transcription: str, keywords: List[Dict], summary: Di
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        if st.button("📄 Download Transcript"):
-            st.download_button(
-                label="Download as TXT",
-                data=transcription,
-                file_name="transcript.txt",
-                mime="text/plain"
-            )
+        st.download_button(
+            label="📄 Download Transcript",
+            data=transcription,
+            file_name="transcript.txt",
+            mime="text/plain"
+        )
     
     with col2:
-        if st.button("📊 Download Analysis"):
-            import json
-            analysis_data = {
-                'keywords': keywords,
-                'summary': summary,
-                'topics': topics
-            }
-            st.download_button(
-                label="Download as JSON",
-                data=json.dumps(analysis_data, indent=2),
-                file_name="analysis.json",
-                mime="application/json"
-            )
+        import json
+        analysis_data = {
+            'keywords': keywords,
+            'summary': summary,
+            'topics': topics
+        }
+        st.download_button(
+            label="📊 Download Analysis",
+            data=json.dumps(analysis_data, indent=2),
+            file_name="analysis.json",
+            mime="application/json"
+        )
     
     with col3:
-        if st.button("📋 Download Report"):
-            report = generate_full_report(transcription, keywords, summary, topics)
-            st.download_button(
-                label="Download Full Report",
-                data=report,
-                file_name="podcast_analysis_report.md",
-                mime="text/markdown"
-            )
+        report = generate_full_report(transcription, keywords, summary, topics)
+        st.download_button(
+            label="📋 Download Report",
+            data=report,
+            file_name="podcast_analysis_report.md",
+            mime="text/markdown"
+        )
 
 def generate_full_report(transcription: str, keywords: List[Dict], summary: Dict, topics: List[Dict]) -> str:
     """Generate a comprehensive markdown report."""

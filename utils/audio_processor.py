@@ -7,7 +7,10 @@ from pydub import AudioSegment
 import numpy as np
 from config import AUDIO_CONFIG, TEMP_DIR
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 class AudioProcessor:
@@ -15,10 +18,14 @@ class AudioProcessor:
     
     def __init__(self):
         self.config = AUDIO_CONFIG
+        os.makedirs(TEMP_DIR, exist_ok=True)
     
     def validate_audio_file(self, file_path: str) -> Tuple[bool, str]:
         """Validate audio file size and format."""
         try:
+            if not os.path.exists(file_path):
+                return False, "File not found"
+                
             file_size_mb = os.path.getsize(file_path) / (1024 * 1024)
             if file_size_mb > self.config.MAX_FILE_SIZE_MB:
                 return False, f"File too large: {file_size_mb:.1f}MB (max: {self.config.MAX_FILE_SIZE_MB}MB)"
@@ -27,6 +34,7 @@ class AudioProcessor:
             audio = AudioSegment.from_file(file_path)[:1000]  # First second
             return True, "Valid audio file"
         except Exception as e:
+            logger.error(f"Validation error: {str(e)}", exc_info=True)
             return False, f"Invalid audio file: {str(e)}"
     
     def convert_to_wav(self, input_path: str, output_path: str) -> str:
@@ -49,8 +57,8 @@ class AudioProcessor:
             logger.info(f"Successfully converted to {output_path}")
             return output_path
         except Exception as e:
-            logger.error(f"Error converting audio: {str(e)}")
-            raise
+            logger.error(f"Conversion error: {str(e)}", exc_info=True)
+            raise RuntimeError(f"Audio conversion failed: {str(e)}")
     
     def get_audio_info(self, file_path: str) -> dict:
         """Get detailed audio file information."""
@@ -65,8 +73,8 @@ class AudioProcessor:
                 "estimated_chunks": self._estimate_chunks(len(audio))
             }
         except Exception as e:
-            logger.error(f"Error getting audio info: {str(e)}")
-            return {}
+            logger.error(f"Audio info error: {str(e)}", exc_info=True)
+            raise RuntimeError(f"Could not get audio info: {str(e)}")
     
     def create_audio_chunks(self, audio_path: str) -> Generator[Tuple[str, int, int], None, None]:
         """Create overlapping audio chunks for processing."""
@@ -100,8 +108,8 @@ class AudioProcessor:
                 chunk_index += 1
                 
         except Exception as e:
-            logger.error(f"Error creating audio chunks: {str(e)}")
-            raise
+            logger.error(f"Chunking error: {str(e)}", exc_info=True)
+            raise RuntimeError(f"Audio chunking failed: {str(e)}")
     
     def cleanup_temp_files(self, pattern: str = "chunk_*.wav"):
         """Clean up temporary chunk files."""
@@ -110,6 +118,7 @@ class AudioProcessor:
         for file_path in temp_files:
             try:
                 os.remove(file_path)
+                logger.debug(f"Removed temp file: {file_path}")
             except Exception as e:
                 logger.warning(f"Could not remove temp file {file_path}: {str(e)}")
     

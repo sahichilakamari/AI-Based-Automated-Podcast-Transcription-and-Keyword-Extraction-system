@@ -1,75 +1,96 @@
 """Enhanced analysis engine for keywords, summarization, and topic modeling."""
 
 import logging
+import os
+import shutil
 from typing import List, Dict, Any
 import streamlit as st
 from keybert import KeyBERT
 from transformers import pipeline
 from bertopic import BERTopic
 from config import PROCESSING_CONFIG
+import re
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 class AnalysisEngine:
-    """Enhanced analysis engine with better error handling and caching."""
+    """Enhanced analysis engine with better error handling."""
     
     def __init__(self):
         self.config = PROCESSING_CONFIG
-        self.keyword_model = None
-        self.summarizer = None
-        self.topic_model = None
-        self._initialize_models()
+        self.keyword_model = self._load_keyword_model()
+        self.summarizer = self._load_summarizer()
+        self.topic_model = self._load_topic_model()
     
-    @st.cache_resource
-    def _initialize_models(_self):
-        """Initialize all analysis models with caching."""
-        models = {}
-        
+    def _load_keyword_model(self):
+        """Load KeyBERT model with error handling."""
         try:
             logger.info("Loading KeyBERT model...")
-            models['keyword_model'] = KeyBERT()
-            logger.info("KeyBERT model loaded")
+            model = KeyBERT()
+            logger.info("KeyBERT model loaded successfully")
+            return model
         except Exception as e:
-            logger.error(f"Error loading KeyBERT: {str(e)}")
-            models['keyword_model'] = None
-        
+            logger.error(f"Failed to load KeyBERT: {str(e)}", exc_info=True)
+            return None
+    
+    def _load_summarizer(self):
+        """Load summarization model with error handling."""
         try:
             logger.info("Loading summarization model...")
-            models['summarizer'] = pipeline(
+            
+            # Set alternative cache location
+            os.environ['HF_HOME'] = os.path.normpath(os.path.join(os.getcwd(), "model_cache"))
+            
+            # Try smaller model first
+            model = pipeline(
                 "summarization",
-                model="facebook/bart-large-cnn",
+                model="sshleifer/distilbart-cnn-12-6",
                 device=-1  # CPU
             )
-            logger.info("Summarization model loaded")
+            logger.info("Summarization model loaded successfully")
+            return model
         except Exception as e:
-            logger.error(f"Error loading summarizer: {str(e)}")
-            models['summarizer'] = None
-        
+            logger.error(f"Failed to load summarizer: {str(e)}", exc_info=True)
+            
+            # Fallback to even smaller model
+            try:
+                model = pipeline(
+                    "summarization",
+                    model="facebook/bart-large-cnn",
+                    device=-1
+                )
+                logger.info("Loaded fallback summarization model")
+                return model
+            except Exception as fallback_error:
+                logger.error(f"Fallback summarizer failed: {str(fallback_error)}")
+                return None
+    
+    def _load_topic_model(self):
+        """Load topic model with error handling."""
         try:
             logger.info("Loading topic modeling...")
-            models['topic_model'] = BERTopic(verbose=False)
-            logger.info("Topic model loaded")
+            model = BERTopic(verbose=False)
+            logger.info("Topic model loaded successfully")
+            return model
         except Exception as e:
-            logger.error(f"Error loading topic model: {str(e)}")
-            models['topic_model'] = None
-        
-        return models
-    
-    def _initialize_models(self):
-        """Initialize models using cached function."""
-        models = self._initialize_models()
-        self.keyword_model = models['keyword_model']
-        self.summarizer = models['summarizer']
-        self.topic_model = models['topic_model']
+            logger.error(f"Failed to load topic model: {str(e)}", exc_info=True)
+            return None
     
     def extract_keywords(self, text: str) -> List[Dict[str, Any]]:
         """Extract keywords with scores and confidence."""
-        if not self.keyword_model or not text.strip():
+        if not self.keyword_model:
+            logger.warning("Keyword model not available")
+            return []
+            
+        if not text or not text.strip():
+            logger.warning("No text provided for keyword extraction")
             return []
         
         try:
-            # Extract keywords with scores
             keywords = self.keyword_model.extract_keywords(
                 text,
                 keyphrase_ngram_range=(1, 3),
@@ -88,22 +109,26 @@ class AnalysisEngine:
                 for keyword, score in keywords
             ]
         except Exception as e:
-            logger.error(f"Error extracting keywords: {str(e)}")
+            logger.error(f"Keyword extraction error: {str(e)}", exc_info=True)
             return []
     
     def summarize_text(self, text: str) -> Dict[str, Any]:
         """Generate summary with multiple approaches."""
-        if not self.summarizer or not text.strip():
+        if not self.summarizer:
+            logger.warning("Summarizer model not available")
+            return self._extractive_summary(text)
+            
+        if not text or not text.strip():
+            logger.warning("No text provided for summarization")
             return {'summary': '', 'bullet_points': [], 'method': 'none'}
         
         try:
-            # Handle long text by chunking
             max_chunk_length = 1024
             text_chunks = self._chunk_text(text, max_chunk_length)
             
             summaries = []
             for chunk in text_chunks:
-                if len(chunk.split()) < 20:  # Skip very short chunks
+                if len(chunk.split()) < 20:
                     continue
                 
                 try:
@@ -115,7 +140,7 @@ class AnalysisEngine:
                     )
                     summaries.append(result[0]['summary_text'])
                 except Exception as e:
-                    logger.warning(f"Error summarizing chunk: {str(e)}")
+                    logger.warning(f"Summarization chunk error: {str(e)}")
                     continue
             
             if summaries:
@@ -129,23 +154,27 @@ class AnalysisEngine:
                     'chunks_processed': len(summaries)
                 }
             else:
-                # Fallback to extractive summary
                 return self._extractive_summary(text)
                 
         except Exception as e:
-            logger.error(f"Error in summarization: {str(e)}")
+            logger.error(f"Summarization error: {str(e)}", exc_info=True)
             return self._extractive_summary(text)
     
     def detect_topics(self, text: str) -> List[Dict[str, Any]]:
         """Detect topics with detailed information."""
-        if not self.topic_model or not text.strip():
+        if not self.topic_model:
+            logger.warning("Topic model not available")
+            return []
+            
+        if not text or not text.strip():
+            logger.warning("No text provided for topic detection")
             return []
         
         try:
-            # Split text into sentences for better topic detection
             sentences = self._split_into_sentences(text)
             
             if len(sentences) < 3:
+                logger.warning("Not enough sentences for topic detection")
                 return []
             
             topics, probabilities = self.topic_model.fit_transform(sentences)
@@ -167,12 +196,11 @@ class AnalysisEngine:
                     }
                     detected_topics.append(topic_data)
             
-            # Sort by document count (popularity)
             detected_topics.sort(key=lambda x: x['document_count'], reverse=True)
             return detected_topics[:self.config.MAX_TOPICS]
             
         except Exception as e:
-            logger.error(f"Error in topic detection: {str(e)}")
+            logger.error(f"Topic detection error: {str(e)}", exc_info=True)
             return []
     
     def _chunk_text(self, text: str, max_length: int) -> List[str]:
@@ -185,7 +213,7 @@ class AnalysisEngine:
             current_chunk.append(word)
             if len(" ".join(current_chunk)) > max_length:
                 if len(current_chunk) > 1:
-                    current_chunk.pop()  # Remove last word
+                    current_chunk.pop()
                     chunks.append(" ".join(current_chunk))
                     current_chunk = [word]
                 else:
@@ -206,7 +234,6 @@ class AnalysisEngine:
         """Fallback extractive summarization."""
         sentences = self._split_into_sentences(text)
         
-        # Simple extractive approach - take first few and last few sentences
         if len(sentences) <= 5:
             selected = sentences
         else:
@@ -224,11 +251,10 @@ class AnalysisEngine:
     
     def _split_into_sentences(self, text: str) -> List[str]:
         """Split text into sentences."""
-        import re
         sentences = re.split(r'[.!?]+', text)
         return [s.strip() for s in sentences if s.strip()]
     
     def _get_representative_docs(self, sentences: List[str], topics: List[int], topic_id: int) -> List[str]:
         """Get representative documents for a topic."""
         topic_sentences = [sentences[i] for i, t in enumerate(topics) if t == topic_id]
-        return topic_sentences[:3]  # Return top 3 representative sentences
+        return topic_sentences[:3]
