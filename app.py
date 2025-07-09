@@ -7,7 +7,7 @@ import logging
 from pathlib import Path
 
 # Verify Python version
-if sys.version_info >= (3, 11):
+if sys.version_info >= (3, 11) or sys.version_info < (3, 10):
     sys.stderr.write("Error: Python 3.10 required (current: %s)\n" % sys.version)
     sys.exit(1)
 
@@ -15,6 +15,7 @@ if sys.version_info >= (3, 11):
 os.environ['HF_HOME'] = os.path.join(os.getcwd(), 'model_cache')
 os.environ['TRANSFORMERS_CACHE'] = os.path.join(os.getcwd(), 'model_cache')
 os.environ['TORCH_HOME'] = os.path.join(os.getcwd(), 'model_cache')
+os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 
 # 2. CONFIGURE LOGGING FIRST
 logging.basicConfig(
