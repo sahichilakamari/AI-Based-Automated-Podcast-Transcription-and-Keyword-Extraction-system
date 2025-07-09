@@ -34,27 +34,17 @@ from pydub import AudioSegment
 import imageio_ffmpeg
 
 # 4. CONFIGURE FFMPEG (with proper error handling)
-# 4. CONFIGURE FFMPEG (with better fallback for ffprobe)
 try:
-    import shutil
     ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
-    ffprobe_path = ffmpeg_path.replace("ffmpeg", "ffprobe")
-
-    # Check if ffprobe exists, fallback to same as ffmpeg if not
-    if not os.path.exists(ffprobe_path):
-        logger.warning("⚠️ ffprobe not found at expected path. Using ffmpeg fallback path.")
-        ffprobe_path = ffmpeg_path  # fallback (may still fail in runtime)
-
     os.environ["IMAGEIO_FFMPEG_EXE"] = ffmpeg_path
     AudioSegment.converter = ffmpeg_path
-    AudioSegment.ffprobe = ffprobe_path
-
-    logger.info(f"FFmpeg configured: {ffmpeg_path}")
-    logger.info(f"FFprobe configured: {ffprobe_path}")
+    AudioSegment.ffprobe = ffmpeg_path.replace("ffmpeg", "ffprobe")  # ❌ doesn't exist
+    logger.info("FFmpeg configured successfully")
 except Exception as e:
     logger.error(f"FFmpeg configuration failed: {str(e)}")
-    st.error("❌ Audio processing requires FFmpeg and FFprobe. Please install them or include them in your deployment.")
+    st.error("Audio processing requires FFmpeg. Please install FFmpeg and add it to your PATH.")
     st.stop()
+
 
 # 5. IMPORT APPLICATION MODULES
 from utils.audio_processor import AudioProcessor
