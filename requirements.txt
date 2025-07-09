@@ -1,23 +1,39 @@
+# Core Streamlit
 streamlit==1.46.1
-faster-whisper==0.10.0
-transformers==4.40.0
-torch==2.2.1
-torchaudio==2.2.1
-keybert==0.7.0
+
+# Audio Processing
 pydub==0.25.1
+librosa==0.10.1
+imageio-ffmpeg==0.4.9
+
+# Whisper Transcription
+faster-whisper==0.10.0
+tokenizers==0.15.2  # Explicit version to resolve conflict
+
+# Transformers and Torch
+transformers==4.40.0
+torch==2.2.1+cu121 --extra-index-url https://download.pytorch.org/whl/cu121
+torchaudio==2.2.1+cu121 --extra-index-url https://download.pytorch.org/whl/cu121
+
+# NLP Processing
+keybert==0.7.0
 sentence-transformers==2.2.2
+bertopic==0.16.0
+
+# Visualization
 matplotlib==3.8.3
 wordcloud==1.9.3
-bertopic==0.16.0
-imageio-ffmpeg==0.4.9
-numpy==1.26.4
-scipy==1.12.0
-librosa==0.10.1
 plotly==5.18.0
+
+# Streamlit Extensions
 streamlit-option-menu==0.3.2
 streamlit-lottie==0.0.5
+
+# Utilities
 requests==2.31.0
 protobuf==4.25.3
 huggingface-hub==0.22.2
 onnxruntime==1.17.1
 python-dotenv==1.0.1
+numpy==1.26.4
+scipy==1.12.0
