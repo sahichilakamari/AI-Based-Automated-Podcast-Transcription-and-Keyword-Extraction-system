@@ -8,12 +8,11 @@ imageio-ffmpeg==0.4.9
 
 # Whisper Transcription
 faster-whisper==0.10.0
-tokenizers==0.15.2  # Explicit version to resolve conflict
 
 # Transformers and Torch
-transformers==4.40.0
-torch==2.2.1
-torchaudio==2.2.1
+transformers==4.36.2  # Downgraded to compatible version
+torch==2.1.2  # Version that works with Python 3.10
+torchaudio==2.1.2
 
 # NLP Processing
 keybert==0.7.0
