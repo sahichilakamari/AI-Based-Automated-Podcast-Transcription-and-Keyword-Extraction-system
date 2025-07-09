@@ -15,24 +15,14 @@ class AudioConfig:
 
 @dataclass
 class TranscriptionConfig:
-    """Transcription model configuration."""
-    MODEL_SIZE: str = "base"  # small, base, large-v2, large-v3
+    MODEL_SIZE: str = "small"  # Start with smaller model
     DEVICE: str = "cpu"
     COMPUTE_TYPE: str = "int8"
+    DOWNLOAD_ROOT: str = os.path.normpath(os.path.join(os.getcwd(), "model_cache"))
     BEAM_SIZE: int = 5
-    VAD_FILTER: bool = True
-    VAD_PARAMETERS: Dict[str, Any] = None
+    VAD_FILTER: bool = False  # Disabled by default due to dependency issues
+    VAD_PARAMETERS: Dict = None
     
-    def __post_init__(self):
-        if self.VAD_PARAMETERS is None:
-            self.VAD_PARAMETERS = {
-                "threshold": 0.5,
-                "min_speech_duration_ms": 250,
-                "max_speech_duration_s": float("inf"),
-                "min_silence_duration_ms": 2000,
-                "speech_pad_ms": 400,
-            }
-
 @dataclass
 class ProcessingConfig:
     """Processing configuration."""
@@ -52,6 +42,8 @@ UPLOAD_DIR = "uploads"
 TEMP_DIR = "temp"
 OUTPUT_DIR = "outputs"
 
-# Create directories
-for directory in [UPLOAD_DIR, TEMP_DIR, OUTPUT_DIR]:
+# Create directories if they don't exist
+for directory in [UPLOAD_DIR, TEMP_DIR, OUTPUT_DIR, TRANSCRIPTION_CONFIG.DOWNLOAD_ROOT]:
     os.makedirs(directory, exist_ok=True)
+    if not os.access(directory, os.W_OK):
+        raise PermissionError(f"Directory not writable: {directory}")

@@ -1,24 +1,70 @@
 """Enhanced Streamlit app for podcast transcription and analysis."""
 
+# 1. BASE IMPORTS (No dependencies)
 import os
-import streamlit as st
+import sys
 import logging
 from pathlib import Path
 
-# Import our enhanced modules
+# 2. CONFIGURE LOGGING FIRST
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('app.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# 3. IMPORT STREAMLIT AND AUDIO DEPENDENCIES
+import streamlit as st
+from pydub import AudioSegment
+import imageio_ffmpeg
+
+# 4. CONFIGURE FFMPEG (with proper error handling)
+try:
+    ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
+    os.environ["IMAGEIO_FFMPEG_EXE"] = ffmpeg_path
+    AudioSegment.converter = ffmpeg_path
+    AudioSegment.ffprobe = ffmpeg_path.replace("ffmpeg", "ffprobe")
+    logger.info("FFmpeg configured successfully")
+except Exception as e:
+    logger.error(f"FFmpeg configuration failed: {str(e)}")
+    st.error("Audio processing requires FFmpeg. Please install FFmpeg and add it to your PATH.")
+    st.stop()  # Critical error - stop the app
+
+# 5. IMPORT APPLICATION MODULES
 from utils.audio_processor import AudioProcessor
 from utils.transcription_engine import TranscriptionEngine
 from utils.analysis_engine import AnalysisEngine
 from utils.ui_components import (
     display_audio_info, display_transcription_results,
     display_keywords, display_summary, display_topics,
-    display_export_options, show_processing_animation
+    display_export_options
 )
-from config import AUDIO_CONFIG, UPLOAD_DIR, OUTPUT_DIR
+from config import AUDIO_CONFIG, TRANSCRIPTION_CONFIG, PROCESSING_CONFIG, UPLOAD_DIR, OUTPUT_DIR  # Added TRANSCRIPTION_CONFIG here
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+def check_system_requirements():
+    """Check if system meets requirements."""
+    if sys.version_info < (3, 8):
+        st.error("❌ Python 3.8 or higher is required")
+        st.stop()
+    
+    try:
+        import torch
+        import pydub
+    except ImportError as e:
+        st.error(f"❌ Missing required package: {str(e)}")
+        st.stop()
+
+def initialize_directories():
+    """Ensure required directories exist."""
+    for directory in [UPLOAD_DIR, OUTPUT_DIR, TRANSCRIPTION_CONFIG.DOWNLOAD_ROOT]:
+        os.makedirs(directory, exist_ok=True)
+        if not os.access(directory, os.W_OK):
+            st.error(f"❌ Directory not writable: {directory}")
+            st.stop()
 
 # Page configuration
 st.set_page_config(
@@ -28,7 +74,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for better styling
+# Custom CSS
 st.markdown("""
 <style>
     .main-header {
@@ -52,6 +98,9 @@ st.markdown("""
         border-radius: 8px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
+    .stAlert {
+        border-radius: 8px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -63,6 +112,8 @@ if 'results' not in st.session_state:
 
 def main():
     """Main application function."""
+    check_system_requirements()
+    initialize_directories()
     
     # Header
     st.markdown("""
@@ -72,17 +123,17 @@ def main():
     </div>
     """, unsafe_allow_html=True)
     
-    # Sidebar with information
+    # Sidebar
     with st.sidebar:
         st.header("ℹ️ About")
         st.markdown("""
         This advanced tool provides:
-        - **Smart Chunking**: Handles long audio files efficiently
-        - **High Accuracy**: Uses Whisper AI for transcription
-        - **Keyword Extraction**: AI-powered keyword identification
-        - **Summarization**: Automatic content summarization
-        - **Topic Modeling**: Discover main themes
-        - **Export Options**: Multiple output formats
+        - **Smart Processing:** Handles files up to 1GB with intelligent chunking
+        - **High Accuracy:** Uses OpenAI's Whisper model for transcription
+        - **Keyword Extraction:** AI-powered keyword identification
+        - **Summarization:** Automatic content summarization
+        - **Topic Modeling:** Discover main themes
+        - **Export Options:** Multiple output formats
         """)
         
         st.header("📋 Supported Formats")
@@ -93,9 +144,12 @@ def main():
         model_size = st.selectbox(
             "Transcription Model",
             ["tiny", "base", "small", "medium", "large-v2"],
-            index=1,
+            index=2,  # Default to small
             help="Larger models are more accurate but slower"
         )
+        
+        if model_size == "large-v2":
+            st.warning("Large models require significant memory and may crash on systems with less than 16GB RAM")
         
         max_file_size = st.slider(
             "Max File Size (MB)",
@@ -107,7 +161,6 @@ def main():
     
     # File upload section
     st.header("📁 Upload Audio Files")
-    
     uploaded_files = st.file_uploader(
         "Choose audio files",
         type=list(AUDIO_CONFIG.SUPPORTED_FORMATS),
@@ -116,126 +169,157 @@ def main():
     )
     
     if uploaded_files:
-        # Initialize processors
-        audio_processor = AudioProcessor()
-        transcription_engine = TranscriptionEngine()
-        analysis_engine = AnalysisEngine()
-        
-        for uploaded_file in uploaded_files:
-            st.divider()
-            st.subheader(f"🎵 Processing: {uploaded_file.name}")
+        try:
+            # Initialize processors
+            audio_processor = AudioProcessor()
             
-            # Save uploaded file
-            file_path = os.path.join(UPLOAD_DIR, uploaded_file.name)
-            with open(file_path, "wb") as f:
-                f.write(uploaded_file.getbuffer())
-            
-            # Validate file
-            is_valid, message = audio_processor.validate_audio_file(file_path)
-            if not is_valid:
-                st.error(f"❌ {message}")
-                continue
-            
-            # Get audio information
-            with st.spinner("📊 Analyzing audio file..."):
-                audio_info = audio_processor.get_audio_info(file_path)
-            
-            if audio_info:
-                st.success("✅ Audio file validated successfully!")
-                display_audio_info(audio_info)
+            try:
+                # Create a local copy of the config to modify
+                from config import TRANSCRIPTION_CONFIG as config_copy
+                config_copy.MODEL_SIZE = model_size
                 
-                # Convert to WAV if needed
-                if not file_path.lower().endswith('.wav'):
-                    with st.spinner("🔄 Converting to WAV format..."):
-                        wav_path = os.path.join(UPLOAD_DIR, f"{Path(uploaded_file.name).stem}.wav")
-                        wav_path = audio_processor.convert_to_wav(file_path, wav_path)
-                else:
-                    wav_path = file_path
+                transcription_engine = TranscriptionEngine()
                 
-                # Process with chunking
-                if st.button(f"🚀 Start Processing {uploaded_file.name}", key=f"process_{uploaded_file.name}"):
+                if not transcription_engine.model:
+                    st.error("❌ Failed to initialize Whisper model. Please check your internet connection and try again.")
+                    return
                     
-                    # Transcription
-                    st.header("🎯 Transcription")
-                    with st.spinner("🎙️ Transcribing audio (this may take a while for long files)..."):
+                analysis_engine = AnalysisEngine()
+                
+                if not all([analysis_engine.keyword_model, analysis_engine.summarizer, analysis_engine.topic_model]):
+                    st.warning("⚠️ Some analysis features may not be available due to model loading issues")
+                
+                for uploaded_file in uploaded_files:
+                    st.divider()
+                    st.subheader(f"🎵 Processing: {uploaded_file.name}")
+                    
+                    # Save uploaded file
+                    file_path = os.path.join(UPLOAD_DIR, uploaded_file.name)
+                    with open(file_path, "wb") as f:
+                        f.write(uploaded_file.getbuffer())
+                    
+                    # Validate file
+                    is_valid, message = audio_processor.validate_audio_file(file_path)
+                    if not is_valid:
+                        st.error(f"❌ {message}")
+                        continue
+                    
+                    # Get audio information
+                    with st.spinner("📊 Analyzing audio file..."):
                         try:
-                            # Create chunks
-                            chunk_generator = audio_processor.create_audio_chunks(wav_path)
-                            total_chunks = audio_info.get('estimated_chunks', 1)
+                            audio_info = audio_processor.get_audio_info(file_path)
+                            if not audio_info:
+                                st.error("❌ Could not analyze audio file")
+                                continue
+                                
+                            st.success("✅ Audio file validated successfully!")
+                            display_audio_info(audio_info)
                             
-                            # Transcribe
-                            transcription_results = transcription_engine.transcribe_audio_chunks(
-                                chunk_generator, total_chunks
-                            )
-                            
-                            if transcription_results['transcription']:
-                                st.success("✅ Transcription completed!")
-                                display_transcription_results(transcription_results)
-                                
-                                # Store results
-                                st.session_state.results[uploaded_file.name] = {
-                                    'transcription': transcription_results,
-                                    'audio_info': audio_info
-                                }
-                                
-                                # Analysis tabs
-                                tab1, tab2, tab3, tab4, tab5 = st.tabs([
-                                    "📝 Transcript", "🔑 Keywords", "📋 Summary", "🧠 Topics", "💾 Export"
-                                ])
-                                
-                                with tab1:
-                                    st.text_area(
-                                        "Full Transcript:",
-                                        transcription_results['transcription'],
-                                        height=400,
-                                        help="Complete transcription of the audio file"
-                                    )
-                                
-                                with tab2:
-                                    with st.spinner("🔍 Extracting keywords..."):
-                                        keywords = analysis_engine.extract_keywords(
-                                            transcription_results['transcription']
-                                        )
-                                    display_keywords(keywords)
-                                
-                                with tab3:
-                                    with st.spinner("📋 Generating summary..."):
-                                        summary = analysis_engine.summarize_text(
-                                            transcription_results['transcription']
-                                        )
-                                    display_summary(summary)
-                                
-                                with tab4:
-                                    with st.spinner("🧠 Detecting topics..."):
-                                        topics = analysis_engine.detect_topics(
-                                            transcription_results['transcription']
-                                        )
-                                    display_topics(topics)
-                                
-                                with tab5:
-                                    display_export_options(
-                                        transcription_results['transcription'],
-                                        keywords,
-                                        summary,
-                                        topics
-                                    )
-                                
+                            # Convert to WAV if needed
+                            if not file_path.lower().endswith('.wav'):
+                                with st.spinner("🔄 Converting to WAV format..."):
+                                    wav_path = os.path.join(UPLOAD_DIR, f"{Path(uploaded_file.name).stem}.wav")
+                                    wav_path = audio_processor.convert_to_wav(file_path, wav_path)
                             else:
-                                st.error("❌ Transcription failed. Please check your audio file.")
-                                
-                        except Exception as e:
-                            st.error(f"❌ Error during processing: {str(e)}")
-                            logger.error(f"Processing error: {str(e)}")
+                                wav_path = file_path
+                            
+                            # Process button
+                            if st.button(f"🚀 Start Processing {uploaded_file.name}", key=f"process_{uploaded_file.name}"):
+                                st.header("🎯 Transcription")
+                                with st.spinner("🎙️ Transcribing audio (this may take a while for long files)..."):
+                                    try:
+                                        # Create chunks
+                                        chunk_generator = audio_processor.create_audio_chunks(wav_path)
+                                        total_chunks = audio_info.get('estimated_chunks', 1)
+                                        
+                                        # Transcribe
+                                        transcription_results = transcription_engine.transcribe_audio_chunks(
+                                            chunk_generator, total_chunks
+                                        )
+                                        
+                                        if not transcription_results['transcription']:
+                                            st.error("❌ Transcription failed. No text was generated.")
+                                            continue
+                                            
+                                        st.success("✅ Transcription completed!")
+                                        display_transcription_results(transcription_results)
+                                        
+                                        # Store results
+                                        st.session_state.results[uploaded_file.name] = {
+                                            'transcription': transcription_results,
+                                            'audio_info': audio_info
+                                        }
+                                        
+                                        # Analysis tabs
+                                        tab1, tab2, tab3, tab4, tab5 = st.tabs([
+                                            "📝 Transcript", "🔑 Keywords", "📋 Summary", "🧠 Topics", "💾 Export"
+                                        ])
+                                        
+                                        with tab1:
+                                            st.text_area(
+                                                "Full Transcript:",
+                                                transcription_results['transcription'],
+                                                height=400,
+                                                help="Complete transcription of the audio file"
+                                            )
+                                        
+                                        with tab2:
+                                            with st.spinner("🔍 Extracting keywords..."):
+                                                keywords = analysis_engine.extract_keywords(
+                                                    transcription_results['transcription']
+                                                )
+                                            display_keywords(keywords)
+                                        
+                                        with tab3:
+                                            with st.spinner("📋 Generating summary..."):
+                                                summary = analysis_engine.summarize_text(
+                                                    transcription_results['transcription']
+                                                )
+                                            display_summary(summary)
+                                        
+                                        with tab4:
+                                            with st.spinner("🧠 Detecting topics..."):
+                                                topics = analysis_engine.detect_topics(
+                                                    transcription_results['transcription']
+                                                )
+                                            display_topics(topics)
+                                        
+                                        with tab5:
+                                            display_export_options(
+                                                transcription_results['transcription'],
+                                                keywords,
+                                                summary,
+                                                topics
+                                            )
+                                        
+                                    except Exception as e:
+                                        st.error(f"❌ Processing error: {str(e)}")
+                                        logger.error(f"Processing error: {str(e)}", exc_info=True)
+                                    
+                                    finally:
+                                        # Cleanup
+                                        audio_processor.cleanup_temp_files()
+                                        try:
+                                            os.remove(wav_path)
+                                        except:
+                                            pass
                         
-                        finally:
-                            # Cleanup
-                            audio_processor.cleanup_temp_files()
-            
-            else:
-                st.error("❌ Could not analyze audio file.")
+                        except Exception as e:
+                            st.error(f"❌ Error processing file: {str(e)}")
+                            logger.error(f"File processing error: {str(e)}", exc_info=True)
+                            continue
+                            
+            except RuntimeError as e:
+                st.error(f"❌ Failed to initialize transcription engine: {str(e)}")
+                logger.error(f"Transcription engine initialization error: {str(e)}", exc_info=True)
+                return
+                
+        except Exception as e:
+            st.error(f"❌ System initialization failed: {str(e)}")
+            logger.error(f"System initialization error: {str(e)}", exc_info=True)
     
     else:
-        # Show welcome message and features
+        # Welcome message
         st.markdown("""
         <div class="feature-box">
             <h3>🚀 Key Features</h3>
