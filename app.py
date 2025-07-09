@@ -37,7 +37,7 @@ import imageio_ffmpeg
 try:
     ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
     os.environ["IMAGEIO_FFMPEG_EXE"] = ffmpeg_path
-    AudioSegment.converter = ffmpeg_path
+    AAudioSegment.converter = ffmpeg_path
     AudioSegment.ffprobe = ffmpeg_path.replace("ffmpeg", "ffprobe")
     logger.info("FFmpeg configured successfully")
 except Exception as e:
