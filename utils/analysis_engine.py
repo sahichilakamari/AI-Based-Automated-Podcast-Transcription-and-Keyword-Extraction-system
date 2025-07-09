@@ -38,7 +38,7 @@ class AnalysisEngine:
             return None
     
     def _load_summarizer(self):
-    """Load summarization model with error handling."""
+        """Load summarization model with error handling."""
         try:
             logger.info("Loading summarization model...")
             os.environ['HF_HOME'] = os.path.normpath(os.path.join(os.getcwd(), "model_cache"))
