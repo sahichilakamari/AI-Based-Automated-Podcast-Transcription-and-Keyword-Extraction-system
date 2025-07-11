@@ -40,7 +40,8 @@ try:
     ffprobe_path = str(Path(__file__).resolve().parent / "ffmpeg" / "ffprobe")
     AudioSegment.converter = ffmpeg_path
     AudioSegment.ffprobe = ffprobe_path
-
+    os.chmod(ffmpeg_path, 0o755)
+    os.chmod(ffprobe_path, 0o755)
     if not os.path.exists(ffmpeg_path) or not os.path.exists(ffprobe_path):
         raise FileNotFoundError("ffmpeg or ffprobe not found in ./ffmpeg directory")
 
@@ -55,7 +56,6 @@ except Exception as e:
     logger.error(f"FFmpeg configuration failed: {str(e)}")
     st.error("Audio processing requires FFmpeg and FFprobe. Please ensure both are available in the 'ffmpeg' folder.")
     st.stop()
-
 
 
 # 5. IMPORT APPLICATION MODULES
