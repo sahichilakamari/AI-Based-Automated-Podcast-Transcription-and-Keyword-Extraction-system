@@ -37,9 +37,8 @@ import imageio_ffmpeg
 # 4. CONFIGURE FFMPEG (with proper error handling)
 try:
     # Set ffmpeg and ffprobe paths
-    ffmpeg_dir = os.path.abspath("ffmpeg")  # Make sure this folder contains both ffmpeg and ffprobe binaries
-    ffmpeg_path = os.path.join(ffmpeg_dir, "ffmpeg")
-    ffprobe_path = os.path.join(ffmpeg_dir, "ffprobe")
+    AudioSegment.converter = "./ffmpeg/ffmpeg"
+    AudioSegment.ffprobe = "./ffmpeg/ffprobe"
 
     if not os.path.exists(ffmpeg_path) or not os.path.exists(ffprobe_path):
         raise FileNotFoundError("ffmpeg or ffprobe not found in ./ffmpeg directory")
