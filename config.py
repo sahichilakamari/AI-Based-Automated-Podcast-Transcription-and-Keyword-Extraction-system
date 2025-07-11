@@ -2,7 +2,6 @@
 
 import os
 from dataclasses import dataclass
-from typing import Dict, Any
 
 @dataclass
 class AudioConfig:
@@ -20,8 +19,7 @@ class TranscriptionConfig:
     COMPUTE_TYPE: str = "int8"
     DOWNLOAD_ROOT: str = os.path.normpath(os.path.join(os.getcwd(), "model_cache"))
     BEAM_SIZE: int = 5
-    VAD_FILTER: bool = False  # Disabled by default due to dependency issues
-    VAD_PARAMETERS: Dict = None
+    VAD_FILTER: bool = False  
     
 @dataclass
 class ProcessingConfig:
