@@ -6,7 +6,6 @@ from typing import List, Tuple, Dict, Any
 from faster_whisper import WhisperModel
 from config import TRANSCRIPTION_CONFIG
 import streamlit as st
-import requests
 
 logging.basicConfig(
     level=logging.INFO,
@@ -37,70 +36,20 @@ class TranscriptionEngine:
             logger.warning(f"VAD check failed: {str(e)} - VAD filtering will be disabled")
             return False
     
-    def _download_model_files(self):
-        """Download all required Whisper model files."""
-        base_url = f"https://huggingface.co/Systran/faster-whisper-{self.config.MODEL_SIZE}/resolve/main/"
-        required_files = [
-            "config.json",
-            "model.bin",
-            "tokenizer.json",
-            "vocabulary.txt"
-        ]
-        
-        model_dir = os.path.join(self.config.DOWNLOAD_ROOT, "faster-whisper", self.config.MODEL_SIZE)
-        os.makedirs(model_dir, exist_ok=True)
-        
-        for file in required_files:
-            file_path = os.path.join(model_dir, file)
-            if os.path.exists(file_path):
-                logger.debug(f"File already exists: {file_path}")
-                continue
-                
-            url = base_url + file
-            logger.info(f"Downloading {file} from {url}")
-            
-            try:
-                response = requests.get(url, stream=True)
-                response.raise_for_status()
-                
-                with open(file_path, "wb") as f:
-                    for chunk in response.iter_content(chunk_size=8192):
-                        f.write(chunk)
-                
-                logger.info(f"Successfully downloaded {file}")
-            except Exception as e:
-                logger.error(f"Failed to download {file}: {str(e)}")
-                if os.path.exists(file_path):
-                    os.remove(file_path)
-                raise RuntimeError(f"Failed to download model file {file}: {str(e)}")
-        
-        return model_dir
-    
     def _load_model(self):
         """Load the Whisper model with error handling."""
         try:
             logger.info(f"Loading Whisper model: {self.config.MODEL_SIZE}")
             
-            # Download all necessary model files
-            model_dir = self._download_model_files()
+            # Use the public model from guillaumekln
+            model_name = f"guillaumekln/faster-whisper-{self.config.MODEL_SIZE}"
             
-            # Verify all required files exist
-            required_files = [
-                "config.json",
-                "model.bin", 
-                "tokenizer.json",
-                "vocabulary.txt"
-            ]
-            
-            for file in required_files:
-                if not os.path.exists(os.path.join(model_dir, file)):
-                    raise RuntimeError(f"Missing required model file: {file}")
-            
-            # Load the model
+            # Load the model directly from Hugging Face Hub
             model = WhisperModel(
-                model_dir,
+                model_name,
                 device=self.config.DEVICE,
-                compute_type=self.config.COMPUTE_TYPE
+                compute_type=self.config.COMPUTE_TYPE,
+                download_root=self.config.DOWNLOAD_ROOT
             )
             
             logger.info("Model loaded successfully")
