@@ -6,9 +6,8 @@ from typing import List, Tuple, Generator
 from pydub import AudioSegment
 from pydub.utils import which
 
-# Explicitly set the converter and ffprobe paths
-AudioSegment.converter = which("ffmpeg") or os.path.abspath("bin/ffmpeg")
-AudioSegment.ffprobe = which("ffprobe") or os.path.abspath("bin/ffprobe")
+AudioSegment.converter = "./ffmpeg/ffmpeg"
+AudioSegment.ffprobe = "./ffmpeg/ffprobe"
 
 # Optional logging to confirm
 print("FFmpeg path used:", AudioSegment.converter)
