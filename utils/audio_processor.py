@@ -6,10 +6,20 @@ from typing import List, Tuple, Generator
 from pydub import AudioSegment
 from pydub.utils import which
 
-ffmpeg_path = str(Path(__file__).resolve().parent / "ffmpeg" / "ffmpeg")
-ffprobe_path = str(Path(__file__).resolve().parent / "ffmpeg" / "ffprobe")
+# Define ffmpeg_dir
+ffmpeg_dir = Path(__file__).parent / "ffmpeg"
 
+# Resolve full binary paths
+ffmpeg_path = str(ffmpeg_dir / "ffmpeg")
+ffprobe_path = str(ffmpeg_dir / "ffprobe")
+
+# Optional: Make sure they're executable (especially in Linux)
+os.chmod(ffmpeg_path, 0o755)
+os.chmod(ffprobe_path, 0o755)
+
+# Set Pydub config manually
 AudioSegment.converter = ffmpeg_path
+AudioSegment.ffmpeg = ffmpeg_path
 AudioSegment.ffprobe = ffprobe_path
 
 # Optional logging to confirm
