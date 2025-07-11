@@ -34,16 +34,28 @@ from pydub import AudioSegment
 import imageio_ffmpeg
 
 # 4. CONFIGURE FFMPEG (with proper error handling)
+# 4. CONFIGURE FFMPEG (with proper error handling)
 try:
-    ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
+    # Set ffmpeg and ffprobe paths
+    ffmpeg_dir = os.path.abspath("ffmpeg")  # Make sure this folder contains both ffmpeg and ffprobe binaries
+    ffmpeg_path = os.path.join(ffmpeg_dir, "ffmpeg")
+    ffprobe_path = os.path.join(ffmpeg_dir, "ffprobe")
+
+    if not os.path.exists(ffmpeg_path) or not os.path.exists(ffprobe_path):
+        raise FileNotFoundError("ffmpeg or ffprobe not found in ./ffmpeg directory")
+
     os.environ["IMAGEIO_FFMPEG_EXE"] = ffmpeg_path
+    os.environ["PATH"] += os.pathsep + ffmpeg_dir  # Add ffmpeg folder to PATH
+
     AudioSegment.converter = ffmpeg_path
-    AudioSegment.ffprobe = ffmpeg_path.replace("ffmpeg", "ffprobe")  # ❌ doesn't exist
-    logger.info("FFmpeg configured successfully")
+    AudioSegment.ffprobe = ffprobe_path
+
+    logger.info("FFmpeg and FFprobe configured successfully")
 except Exception as e:
     logger.error(f"FFmpeg configuration failed: {str(e)}")
-    st.error("Audio processing requires FFmpeg. Please install FFmpeg and add it to your PATH.")
+    st.error("Audio processing requires FFmpeg and FFprobe. Please ensure both are available in the 'ffmpeg' folder.")
     st.stop()
+
 
 
 # 5. IMPORT APPLICATION MODULES
