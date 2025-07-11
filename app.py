@@ -36,12 +36,20 @@ import imageio_ffmpeg
 # 4. CONFIGURE FFMPEG (with proper error handling)
 # 4. CONFIGURE FFMPEG (with proper error handling)
 try:
-    ffmpeg_path = str(Path(__file__).resolve().parent / "ffmpeg" / "ffmpeg")
-    ffprobe_path = str(Path(__file__).resolve().parent / "ffmpeg" / "ffprobe")
-    AudioSegment.converter = ffmpeg_path
-    AudioSegment.ffprobe = ffprobe_path
+    # Define ffmpeg_dir
+    ffmpeg_dir = Path(__file__).parent / "ffmpeg"
+    # Resolve full binary paths
+    ffmpeg_path = str(ffmpeg_dir / "ffmpeg")
+    ffprobe_path = str(ffmpeg_dir / "ffprobe")
+
+    # Optional: Make sure they're executable (especially in Linux)
     os.chmod(ffmpeg_path, 0o755)
     os.chmod(ffprobe_path, 0o755)
+
+    # Set Pydub config manually
+    AudioSegment.converter = ffmpeg_path
+    AudioSegment.ffmpeg = ffmpeg_path
+    AudioSegment.ffprobe = ffprobe_path
     if not os.path.exists(ffmpeg_path) or not os.path.exists(ffprobe_path):
         raise FileNotFoundError("ffmpeg or ffprobe not found in ./ffmpeg directory")
 
