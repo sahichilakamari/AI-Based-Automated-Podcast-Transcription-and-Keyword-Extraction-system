@@ -10,8 +10,8 @@ from pydub.utils import which
 ffmpeg_dir = Path(__file__).parent / "ffmpeg"
 
 # Resolve full binary paths
-ffmpeg_path = str(ffmpeg_dir / "ffmpeg")
-ffprobe_path = str(ffmpeg_dir / "ffprobe")
+ffmpeg_path = str(ffmpeg / "ffmpeg")
+ffprobe_path = str(ffmpeg / "ffprobe")
 
 # Optional: Make sure they're executable (especially in Linux)
 os.chmod(ffmpeg_path, 0o755)
