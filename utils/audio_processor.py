@@ -5,6 +5,7 @@ import logging
 from typing import List, Tuple, Generator
 from pydub import AudioSegment
 from pydub.utils import which
+from pathlib import Path
 
 # Define ffmpeg_dir
 ffmpeg_dir = Path(__file__).parent / "ffmpeg"
