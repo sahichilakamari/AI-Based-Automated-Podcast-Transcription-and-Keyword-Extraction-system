@@ -21,11 +21,20 @@ class AudioProcessor:
         
         # Verify FFmpeg is available through pydub
         try:
-            AudioSegment.from_file("nonexistent.mp3")  # Just to test FFmpeg
+            from pydub.utils import which
+            if not which("ffmpeg") or not which("ffprobe"):
+                raise RuntimeError("FFmpeg or ffprobe not found in PATH")
+            
+            # Create a silent audio segment to test FFmpeg
+            test_audio = AudioSegment.silent(duration=100)
+            with open(os.path.join(TEMP_DIR, "test_ffmpeg.mp3"), "wb") as f:
+                test_audio.export(f, format="mp3")
+            os.remove(os.path.join(TEMP_DIR, "test_ffmpeg.mp3"))
+            
         except Exception as e:
-            logger.error("FFmpeg not properly configured")
-            raise RuntimeError("Audio processing requires FFmpeg. Please ensure it's properly installed.")
-    
+            logger.error(f"FFmpeg verification failed: {str(e)}")
+            raise RuntimeError("Audio processing requires FFmpeg. Please ensure it's properly installed in the system.")
+            
     def validate_audio_file(self, file_path: str) -> Tuple[bool, str]:
         """Validate audio file size and format."""
         try:
