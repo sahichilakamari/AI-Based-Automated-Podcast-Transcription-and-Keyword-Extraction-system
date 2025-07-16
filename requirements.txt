@@ -3,7 +3,7 @@ numpy
 pandas
 matplotlib
 plotly
-pydub
+pydub>=0.25.1
 faster-whisper
 torch
 transformers
@@ -13,4 +13,3 @@ keybert
 imageio_ffmpeg
 requests
 python-dotenv
-ffmpeg-python>=0.2.0
