@@ -4,7 +4,6 @@
 import os
 import sys
 import logging
-from pathlib import Path
 
 # Verify Python version
 if sys.version_info >= (3, 11) or sys.version_info < (3, 10):
@@ -33,32 +32,8 @@ import streamlit as st
 from pydub import AudioSegment
 import imageio_ffmpeg
 
-# 4. CONFIGURE FFMPEG (with proper error handling)
-# 4. CONFIGURE FFMPEG (with proper error handling)
-try:
-    # Define ffmpeg_dir
-    ffmpeg_dir = Path(__file__).parent.parent / "ffmpeg"
-    # Resolve full binary paths
-    ffmpeg_path = str(ffmpeg_dir / "ffmpeg")
-    ffprobe_path = str(ffmpeg_dir / "ffprobe")
-
-    # Optional: Make sure they're executable (especially in Linux)
-    os.chmod(ffmpeg_path, 0o755)
-    os.chmod(ffprobe_path, 0o755)
-
-    # Set Pydub config manually
-    AudioSegment.converter = ffmpeg_path
-    AudioSegment.ffmpeg = ffmpeg_path
-    AudioSegment.ffprobe = ffprobe_path
-    if not os.path.exists(ffmpeg_path) or not os.path.exists(ffprobe_path):
-        raise FileNotFoundError("ffmpeg or ffprobe not found in ./ffmpeg directory")
-
-    os.environ["IMAGEIO_FFMPEG_EXE"] = ffmpeg_path
-    os.environ["PATH"] += os.pathsep + str(ffmpeg_dir)  # Add ffmpeg folder to PATH
-
     AudioSegment.converter = ffmpeg_path
     AudioSegment.ffprobe = ffprobe_path
-
     logger.info("FFmpeg and FFprobe configured successfully")
 except Exception as e:
     logger.error(f"FFmpeg configuration failed: {str(e)}")
