@@ -39,8 +39,8 @@ try:
     # Define ffmpeg_dir
     ffmpeg_dir = Path(__file__).parent.parent / "ffmpeg"
     # Resolve full binary paths
-    ffmpeg_path = str(ffmpeg / "ffmpeg")
-    ffprobe_path = str(ffmpeg / "ffprobe")
+    ffmpeg_path = str(ffmpeg_dir / "ffmpeg")
+    ffprobe_path = str(ffmpeg_dir / "ffprobe")
 
     # Optional: Make sure they're executable (especially in Linux)
     os.chmod(ffmpeg_path, 0o755)
