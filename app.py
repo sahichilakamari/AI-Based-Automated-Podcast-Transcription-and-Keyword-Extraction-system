@@ -31,7 +31,8 @@ logger = logging.getLogger(__name__)
 import streamlit as st
 from pydub import AudioSegment
 import imageio_ffmpeg
-
+# In app.py, update the imports at the top to include which:
+from pydub.utils import which
 # In app.py, replace the FFmpeg configuration section (around line 40) with:
 try:
     # Use system-installed FFmpeg
