@@ -31,26 +31,26 @@ logger = logging.getLogger(__name__)
 import streamlit as st
 from pydub import AudioSegment
 import imageio_ffmpeg
-# In app.py, update the imports at the top to include which:
 from pydub.utils import which
-# In app.py, replace the FFmpeg configuration section (around line 40) with:
-# Replace the FFmpeg configuration section in app.py with:
 try:
-    import ffmpeg
+    # Use pydub's which to find ffmpeg
+    from pydub.utils import which
+    
+    # Set pydub to use ffmpeg from PATH
+    AudioSegment.converter = which("ffmpeg") or "ffmpeg"
+    AudioSegment.ffprobe = which("ffprobe") or "ffprobe"
+    
     # Test FFmpeg availability
-    ffmpeg_path = ffmpeg.get_ffmpeg_version()
-    logger.info(f"FFmpeg version: {ffmpeg_path}")
+    test_audio = AudioSegment.silent(duration=1000)
+    test_audio.export("test.mp3", format="mp3")
+    os.remove("test.mp3")
     
-    # Configure pydub to use the Python FFmpeg wrapper
-    AudioSegment.converter = "ffmpeg"
-    AudioSegment.ffprobe = "ffprobe"
-    os.environ["IMAGEIO_FFMPEG_EXE"] = "ffmpeg"
-    
-    logger.info("FFmpeg configured successfully using Python wrapper")
+    logger.info("FFmpeg configured successfully")
 except Exception as e:
     logger.error(f"FFmpeg configuration failed: {str(e)}")
-    st.error("Failed to configure FFmpeg. Please check the requirements.")
+    st.error("Failed to configure FFmpeg. This app requires FFmpeg to be available in the system PATH.")
     st.stop()
+    
 # 5. IMPORT APPLICATION MODULES
 from utils.audio_processor import AudioProcessor
 from utils.transcription_engine import TranscriptionEngine
