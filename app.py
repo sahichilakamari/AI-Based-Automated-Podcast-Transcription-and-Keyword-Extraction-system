@@ -32,7 +32,6 @@ import streamlit as st
 from pydub import AudioSegment
 import imageio_ffmpeg
 from pydub.utils import which
-# Replace the FFmpeg configuration section in app.py with:
 try:
     from pydub.utils import which
     if not which("ffmpeg") or not which("ffprobe"):
