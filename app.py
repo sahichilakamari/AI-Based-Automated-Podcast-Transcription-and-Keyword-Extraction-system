@@ -32,23 +32,16 @@ import streamlit as st
 from pydub import AudioSegment
 import imageio_ffmpeg
 from pydub.utils import which
+# Replace the FFmpeg configuration section in app.py with:
 try:
-    # Use pydub's which to find ffmpeg
     from pydub.utils import which
+    if not which("ffmpeg") or not which("ffprobe"):
+        raise RuntimeError("FFmpeg or ffprobe not found in PATH")
     
-    # Set pydub to use ffmpeg from PATH
-    AudioSegment.converter = which("ffmpeg") or "ffmpeg"
-    AudioSegment.ffprobe = which("ffprobe") or "ffprobe"
-    
-    # Test FFmpeg availability
-    test_audio = AudioSegment.silent(duration=1000)
-    test_audio.export("test.mp3", format="mp3")
-    os.remove("test.mp3")
-    
-    logger.info("FFmpeg configured successfully")
+    logger.info("FFmpeg verified as available")
 except Exception as e:
-    logger.error(f"FFmpeg configuration failed: {str(e)}")
-    st.error("Failed to configure FFmpeg. This app requires FFmpeg to be available in the system PATH.")
+    logger.error(f"FFmpeg verification failed: {str(e)}")
+    st.error("This app requires FFmpeg to be available in the system PATH.")
     st.stop()
     
 # 5. IMPORT APPLICATION MODULES
