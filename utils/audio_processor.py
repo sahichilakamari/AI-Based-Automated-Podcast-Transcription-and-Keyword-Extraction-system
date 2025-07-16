@@ -1,33 +1,8 @@
-"""Enhanced audio processing utilities with chunking support."""
-
 import os
 import logging
 from typing import List, Tuple, Generator
 from pydub import AudioSegment
 from pydub.utils import which
-from pathlib import Path  # <-- ADD THIS
-
-# Define ffmpeg_dir
-ffmpeg_dir = Path(__file__).parent.parent / "ffmpeg"
-
-# Resolve full binary paths
-ffmpeg_path = str(ffmpeg_dir / "ffmpeg")
-ffprobe_path = str(ffmpeg_dir / "ffprobe")
-
-# Make sure they're executable
-os.chmod(ffmpeg_path, 0o755)
-os.chmod(ffprobe_path, 0o755)
-
-# Set Pydub config manually
-AudioSegment.converter = ffmpeg_path
-AudioSegment.ffmpeg = ffmpeg_path
-AudioSegment.ffprobe = ffprobe_path
-
-
-# Optional logging to confirm
-print("FFmpeg path used:", AudioSegment.converter)
-print("FFprobe path used:", AudioSegment.ffprobe)
-
 import numpy as np
 from config import AUDIO_CONFIG, TEMP_DIR
 
