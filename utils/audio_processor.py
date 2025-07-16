@@ -11,8 +11,8 @@ from pathlib import Path  # <-- ADD THIS
 ffmpeg_dir = Path(__file__).parent.parent / "ffmpeg"
 
 # Resolve full binary paths
-ffmpeg_path = str(ffmpeg / "ffmpeg")
-ffprobe_path = str(ffmpeg / "ffprobe")
+ffmpeg_path = str(ffmpeg_dir / "ffmpeg")
+ffprobe_path = str(ffmpeg_dir / "ffprobe")
 
 # Make sure they're executable
 os.chmod(ffmpeg_path, 0o755)
