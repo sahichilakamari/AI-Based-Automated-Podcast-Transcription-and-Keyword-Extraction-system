@@ -33,14 +33,20 @@ from pydub import AudioSegment
 import imageio_ffmpeg
 from pydub.utils import which
 try:
-    from pydub.utils import which
-    if not which("ffmpeg") or not which("ffprobe"):
-        raise RuntimeError("FFmpeg or ffprobe not found in PATH")
-    
+    # Simple check that doesn't rely on file operations
+    from pydub import AudioSegment
+    test_audio = AudioSegment.silent(duration=100)
+    if not hasattr(test_audio, '_data'):
+        raise RuntimeError("AudioSegment creation failed")
     logger.info("FFmpeg verified as available")
 except Exception as e:
     logger.error(f"FFmpeg verification failed: {str(e)}")
-    st.error("This app requires FFmpeg to be available in the system PATH.")
+    st.error("""
+    This app requires FFmpeg to be properly installed. 
+    For Streamlit Cloud, please ensure:
+    1. You have a packages.txt file containing 'ffmpeg'
+    2. The file is in your repository root
+    """)
     st.stop()
     
 # 5. IMPORT APPLICATION MODULES
