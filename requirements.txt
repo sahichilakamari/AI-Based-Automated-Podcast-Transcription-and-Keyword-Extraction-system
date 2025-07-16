@@ -13,3 +13,4 @@ keybert
 imageio_ffmpeg
 requests
 python-dotenv
+ffmpeg-python==0.2.0
