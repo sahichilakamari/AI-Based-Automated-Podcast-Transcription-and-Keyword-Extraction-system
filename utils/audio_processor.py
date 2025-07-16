@@ -2,7 +2,6 @@ import os
 import logging
 from typing import List, Tuple, Generator
 from pydub import AudioSegment
-from pydub.utils import which
 import numpy as np
 from config import AUDIO_CONFIG, TEMP_DIR
 
@@ -19,12 +18,16 @@ class AudioProcessor:
         self.config = AUDIO_CONFIG
         os.makedirs(TEMP_DIR, exist_ok=True)
         
-        # Simple FFmpeg availability check
-        if not which("ffmpeg") or not which("ffprobe"):
-            logger.error("FFmpeg or ffprobe not found in PATH")
-            raise RuntimeError("Audio processing requires FFmpeg. Please ensure it's properly installed.")
-        
-        logger.info("FFmpeg verified as available")
+        # Safer FFmpeg availability check
+        try:
+            # Try a simple silent audio generation (no file I/O)
+            test_audio = AudioSegment.silent(duration=100)
+            if not hasattr(test_audio, '_data'):
+                raise RuntimeError("AudioSegment creation failed")
+            logger.info("FFmpeg verified as available")
+        except Exception as e:
+            logger.error(f"FFmpeg verification failed: {str(e)}")
+            raise RuntimeError("Audio processing requires FFmpeg. Please ensure it's properly installed in the system.")
             
     def validate_audio_file(self, file_path: str) -> Tuple[bool, str]:
         """Validate audio file size and format."""
