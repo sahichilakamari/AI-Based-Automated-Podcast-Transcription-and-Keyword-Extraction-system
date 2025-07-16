@@ -18,6 +18,13 @@ class AudioProcessor:
     def __init__(self):
         self.config = AUDIO_CONFIG
         os.makedirs(TEMP_DIR, exist_ok=True)
+        
+        # Verify FFmpeg is available through pydub
+        try:
+            AudioSegment.from_file("nonexistent.mp3")  # Just to test FFmpeg
+        except Exception as e:
+            logger.error("FFmpeg not properly configured")
+            raise RuntimeError("Audio processing requires FFmpeg. Please ensure it's properly installed.")
     
     def validate_audio_file(self, file_path: str) -> Tuple[bool, str]:
         """Validate audio file size and format."""
