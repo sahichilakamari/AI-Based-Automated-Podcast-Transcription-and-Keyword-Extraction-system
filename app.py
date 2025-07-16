@@ -34,26 +34,23 @@ import imageio_ffmpeg
 # In app.py, update the imports at the top to include which:
 from pydub.utils import which
 # In app.py, replace the FFmpeg configuration section (around line 40) with:
+# Replace the FFmpeg configuration section in app.py with:
 try:
-    # Use system-installed FFmpeg
-    ffmpeg_path = which("ffmpeg")
-    ffprobe_path = which("ffprobe")
+    import ffmpeg
+    # Test FFmpeg availability
+    ffmpeg_path = ffmpeg.get_ffmpeg_version()
+    logger.info(f"FFmpeg version: {ffmpeg_path}")
     
-    if not ffmpeg_path or not ffprobe_path:
-        raise FileNotFoundError("ffmpeg or ffprobe not found in system PATH")
-
-    # Set Pydub config
-    AudioSegment.converter = ffmpeg_path
-    AudioSegment.ffprobe = ffprobe_path
-    os.environ["IMAGEIO_FFMPEG_EXE"] = ffmpeg_path
-
-    logger.info("FFmpeg configured successfully (using system installation)")
+    # Configure pydub to use the Python FFmpeg wrapper
+    AudioSegment.converter = "ffmpeg"
+    AudioSegment.ffprobe = "ffprobe"
+    os.environ["IMAGEIO_FFMPEG_EXE"] = "ffmpeg"
+    
+    logger.info("FFmpeg configured successfully using Python wrapper")
 except Exception as e:
     logger.error(f"FFmpeg configuration failed: {str(e)}")
-    st.error("Audio processing requires FFmpeg and FFprobe. Please ensure both are installed and available in your system PATH.")
+    st.error("Failed to configure FFmpeg. Please check the requirements.")
     st.stop()
-
-
 # 5. IMPORT APPLICATION MODULES
 from utils.audio_processor import AudioProcessor
 from utils.transcription_engine import TranscriptionEngine
