@@ -54,7 +54,7 @@ try:
         raise FileNotFoundError("ffmpeg or ffprobe not found in ./ffmpeg directory")
 
     os.environ["IMAGEIO_FFMPEG_EXE"] = ffmpeg_path
-    os.environ["PATH"] += os.pathsep + ffmpeg_dir  # Add ffmpeg folder to PATH
+    os.environ["PATH"] += os.pathsep + str(ffmpeg_dir)  # Add ffmpeg folder to PATH
 
     AudioSegment.converter = ffmpeg_path
     AudioSegment.ffprobe = ffprobe_path
