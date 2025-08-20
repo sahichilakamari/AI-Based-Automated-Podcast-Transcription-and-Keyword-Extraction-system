@@ -4,6 +4,7 @@
 import os
 import sys
 import logging
+from pathlib import Path
 
 # Verify Python version
 if sys.version_info >= (3, 11) or sys.version_info < (3, 10):
@@ -83,8 +84,8 @@ def initialize_directories():
 
 # Page configuration
 st.set_page_config(
-    page_title="🎙️ Advanced Podcast Transcription & Analysis",
-    page_icon="🎙️",
+    page_title=" Advanced Podcast Transcription & Analysis",
+    page_icon="🎙️"
     layout="wide",
     initial_sidebar_state="expanded"
 )
